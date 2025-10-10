@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Terkunci - DEKRIPSI DIPERLUKAN</title>
+    <style>
+    /* CSS untuk memastikan video full-screen */
+    body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #000;
+        overflow: hidden;
+    }
+    #myVideo {
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+    }
+    /* Overlay untuk instruksi TAP */
+    #overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-family: sans-serif;
+        font-size: 24px;
+        text-align: center;
+        z-index: 100;
+        background-color: rgba(0, 0, 0, 0.7); 
+        cursor: pointer;
+        padding: 20px;
+    }
+    
+    /* Overlay untuk Input Password - TRANSPARAN */
+    #password-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-family: sans-serif;
+        z-index: 101;
+        padding: 20px;
+    }
+    #password-overlay h2 {
+        color: #ff0000;
+        margin-bottom: 30px;
+        font-size: 30px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+    #password-overlay p {
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    }
+    #password-input {
+        padding: 10px;
+        margin: 10px 0;
+        font-size: 18px;
+        border: 2px solid #ff0000;
+        background-color: rgba(51, 51, 51, 0.7);
+        color: white;
+        text-align: center;
+        width: 80%;
+        max-width: 300px;
+    }
+    #submit-button {
+        padding: 10px 20px;
+        font-size: 18px;
+        cursor: pointer;
+        background-color: #ff0000;
+        color: white;
+        border: none;
+        margin-top: 10px;
+        box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    }
+    
+    /* CSS untuk Mode Normal (Setelah Exit) */
+    .normal-mode {
+        display: block !important;
+        position: static !important;
+        background-color: #f0f0f0 !important;
+        color: black !important;
+        text-align: center;
+        padding-top: 50px;
+    }
+    </style>
+</head>
+<body>
+  
+<div id="overlay">
+    <p>SISTEM TERDETEKSI TERKUNCI!</p>
+    <p>TAP DI MANA SAJA UNTUK MELIHAT INSTRUKSI PEMULIHAN.</p>
+</div>
+
+<div id="password-overlay">
+    <h2>DATA ANDA TERENKRIPSI!</h2>
+    <p>Masukkan Kunci Dekripsi (Password) untuk Keluar:</p>
+    <input type="password" id="password-input" placeholder="Masukkan Kunci..." autofocus>
+    <button id="submit-button" onclick="checkPassword()">EXIT / DECRYPT</button>
+    <p style="font-size: 14px; margin-top: 20px;">Kunci adalah satu-satunya cara untuk keluar.</p>
+</div>
+  
+<video id="myVideo" loop muted playsinline>
+    <source src="material.webm" type="video/webm">
+</video>
+
+
+<script>
+    const videoElement = document.getElementById('myVideo');
+    const overlayElement = document.getElementById('overlay');
+    const passwordOverlay = document.getElementById('password-overlay');
+    const passwordInput = document.getElementById('password-input');
+    
+    // 🔑 PASSWORD RAHASIA TEMANMU 🔑
+    const CORRECT_PASSWORD = "bintangganteng"; 
+    
+    // --- FUNGSI UTAMA ---
+    
+    // Fungsi untuk meminta Full-Screen
+    function enterFullscreen(element) {
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+    }
+
+    // Fungsi yang dipanggil saat user berinteraksi (TAP)
+    function tryStart() {
+        if (overlayElement.style.display === 'none' && passwordOverlay.style.display === 'flex') return;
+        
+        videoElement.play().then(() => {
+            videoElement.muted = false;
+            
+            // 1. Masuk mode Full-Screen
+            enterFullscreen(document.documentElement); 
+            
+            // 2. Tampilkan Overlay Password
+            overlayElement.style.display = 'none';
+            passwordOverlay.style.display = 'flex';
+            passwordInput.focus(); 
+
+        }).catch(error => {
+            overlayElement.style.display = 'none';
+            passwordOverlay.style.display = 'flex';
+            passwordInput.focus(); 
+            console.warn("Autoplay gagal, butuh interaksi user lain.");
+        });
+        
+        // Aktifkan fitur mengganggu saat sudah masuk mode prank
+        activatePrankFeatures();
+    }
+
+    // Fungsi Kunci: Cek Password
+    function checkPassword() {
+        const inputPass = passwordInput.value.toLowerCase().trim();
+
+        if (inputPass === CORRECT_PASSWORD) {
+            // Password BENAR: Lakukan Exit
+            exitPrankMode();
+        } else {
+            // Password SALAH
+            alert("Kunci Dekripsi Salah! Coba lagi.");
+            passwordInput.value = ''; 
+            passwordInput.focus();
+        }
+    }
+    
+    // Fungsi Exit: Balikin ke mode normal
+    function exitPrankMode() {
+        // Hentikan video dan sembunyikan semua overlay
+        videoElement.pause();
+        passwordOverlay.style.display = 'none';
+
+        // Keluar dari Full-Screen
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+        
+        // NONAKTIFKAN SEMUA FITUR PENGGANGGU
+        window.onpopstate = null; 
+        window.onbeforeunload = null; 
+        document.removeEventListener('keydown', disableESC);
+
+        // Ubah tampilan body ke mode normal (layar putih)
+        document.body.classList.add('normal-mode');
+        document.body.innerHTML = '<h1>Sistem Pulih!</h1><p>Selamat, Bro! Kunci dekripsi **' + CORRECT_PASSWORD + '** diterima.</p><p>Kamu berhasil keluar dari jeratan **Ransomware** ini! Sekarang kamu bisa menutup halaman ini.</p>';
+    }
+
+    // --- FITUR PENGGANGGU/MENYULITKAN ---
+    
+    // 1. Fungsi melumpuhkan tombol ESC (di PC)
+    function disableESC(e) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            // Opsional: Kasih alert biar lebih panik
+            alert("Aksi diblokir! Masukkan kunci untuk keluar.");
+        }
+    }
+
+    function activatePrankFeatures() {
+        // A. Mengganggu Tombol 'Back'
+        // Ini membuat tombol back/kembali selalu kembali ke halaman ini
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            history.go(1);
+        };
+        
+        // B. Mengganggu Tombol Tutup Browser/Tab
+        // Memunculkan pop-up peringatan saat user mencoba menutup tab/browser
+        window.onbeforeunload = function() {
+            return "ANDA YAKIN MAU KELUAR? SEMUA DATA ANDA BISA HILANG!";
+        };
+        
+        // C. Melumpuhkan Tombol ESC (Escape)
+        // Ini mencegah user keluar dari Full-Screen dengan tombol ESC
+        document.addEventListener('keydown', disableESC);
+
+        // D. Mencegah Menu Klik Kanan (untuk PC)
+        document.addEventListener('contextmenu', event => event.preventDefault());
+    }
+    
+    // --- EVENT LISTENER Awal ---
+    document.addEventListener('click', tryStart);
+    document.addEventListener('touchend', tryStart);
+    
+    // Listener untuk tekan ENTER di input password
+    passwordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            checkPassword();
+        }
+    });
+
+    videoElement.load();
+</script>
+
+</body>
+</html>
